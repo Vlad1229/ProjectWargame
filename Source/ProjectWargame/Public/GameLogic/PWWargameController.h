@@ -9,6 +9,7 @@
 class APWWargamePlayerState;
 class APWBaseUnit;
 class APWGameBoard;
+class APWCameraManager;
 
 /**
  * 
@@ -19,21 +20,30 @@ class PROJECTWARGAME_API APWWargameController : public APlayerController
 	GENERATED_BODY()
 	
 public:
-	void AddControlledUnit(APWBaseUnit* NewUnit);
+	void AddControlledUnitOnServer(APWBaseUnit* NewUnit);
+
+	void AddControlledUnitOnClient(APWBaseUnit* NewUnit);
 
 	void SetGameBoard(APWGameBoard* InGameBoard);
+
+	void SetControlIsEnabled(bool bIsEnabled);
+
+	void SetAsFirstPlayer();
+
+	UFUNCTION(Client, Reliable)
+	void Client_SetAsFirstPlayer();
+
+	void SetAsSecondPlayer();
+
+	UFUNCTION(Client, Reliable)
+	void Client_SetAsSecondPlayer();
 
 protected:
 	virtual void BeginPlay() override;
 
-	virtual void OnPossess(APawn* aPawn) override;
-
 	virtual void SetupInputComponent() override;
 
 private:
-	UFUNCTION(Client, Reliable)
-	void Client_AddControlledUnit(APWBaseUnit* NewUnit);
-
 	UFUNCTION()
 	void Move();
 
@@ -44,37 +54,41 @@ private:
 	void Action();
 
 	UFUNCTION(Server, Reliable)
-	void Server_SelectUnit(int32 UnitIndex);
-
-	UFUNCTION(Server, Reliable)
 	void Server_PerformAction();
 
-	UFUNCTION()
-	void OnUnitBeginCursorOver(int32 UnitIndex);
+	UFUNCTION(Client, Reliable)
+	void Client_EnableControl();
+
+	UFUNCTION(Client, Reliable)
+	void Client_DisableControl();
 
 	UFUNCTION()
-	void OnUnitEndCursorOver(int32 UnitIndex);
-
-	void SelectUnit(int32 UnitIndex);
+	void OnUnitBeginCursorOver(APWBaseUnit* TouchedUnit);
 
 	UFUNCTION()
-	void OnMoveEnd();
+	void OnUnitEndCursorOver(APWBaseUnit* TouchedUnit);
+
+	void SelectUnit(APWBaseUnit* InUnit);
 
 protected:
 	APWWargamePlayerState* WargamePlayerState;
 
 	APWGameBoard* GameBoard;
 
+	APWCameraManager* CameraManager;
+
 	TArray<APWBaseUnit*> ControlledUnits;
 
 	APWBaseUnit* SelectedUnit;
 
 private:
-	int32 HoveredUnitIndex = -1;
+	bool bIsFirstPlayer;
+
+	APWBaseUnit* HoveredUnit;
 
 	TArray<FIntPoint> MovementAvailablePoints;
 
 	TArray<FIntPoint> ActionAvailablePoints;
 
-	bool bHasControl = true;
+	bool bHasControl = false;
 };

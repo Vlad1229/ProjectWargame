@@ -24,13 +24,29 @@ void APWWargameGameMode::PostLogin(APlayerController* NewPlayer)
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.bNoFail = true;
 	APWBaseUnit* Unit = GetWorld()->SpawnActor<APWBaseUnit>(UnitClass, SpawnParameters);
+	Unit->OnEndMove.BindUObject(this, &APWWargameGameMode::SwitchPlayer);
 
-	WargamePlayer->AddControlledUnit(Unit);
-	if (GameBoard)
+	Unit->SetOwner(WargamePlayer);
+
+	WargamePlayer->AddControlledUnitOnServer(Unit);
+	if (Players.Num() == 0)
 	{
-		Unit->SetActorLocation(GameBoard->GetLocationOf(FIntPoint(0, 0)));
-		GameBoard->TakePosition(FIntPoint(0, 0));
+		WargamePlayer->Client_SetAsFirstPlayer();
+
+		Unit->SetDefaultPosition(FIntPoint(0, 0));
+		Unit->SetDefaultAngle(0.f);
 	}
+	else
+	{
+		WargamePlayer->Client_SetAsSecondPlayer();
+
+		Unit->SetDefaultPosition(FIntPoint(GameBoard->GetBoardSize() - FIntPoint(1, 1)));
+		Unit->SetDefaultAngle(180.f);
+
+		StartGame();
+	}
+
+	Players.Add(WargamePlayer);
 }
 
 void APWWargameGameMode::GenerateBoard()
@@ -42,8 +58,23 @@ void APWWargameGameMode::GenerateBoard()
 		GameBoard = Cast<APWGameBoard>(FoundBoards[0]);
 		GameBoard->SetBoardSize(BoardSize);
 	}
+}
+
+void APWWargameGameMode::StartGame()
+{
+	CurrentPlayerIndex = 0;
+	Players[CurrentPlayerIndex]->SetControlIsEnabled(true);
+}
+
+void APWWargameGameMode::SwitchPlayer()
+{
+	if (CurrentPlayerIndex == 0)
+	{
+		CurrentPlayerIndex = 1;
+	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("Game Board is missing"));
+		CurrentPlayerIndex = 0;
 	}
+	Players[CurrentPlayerIndex]->SetControlIsEnabled(true);
 }

@@ -25,6 +25,18 @@ void APWGameBoard::SetBoardSize(const FIntPoint& InBoardSize)
 	BoardSize = InBoardSize;
 }
 
+void APWGameBoard::SetOrientation(bool bInIsOrientedForward)
+{
+	if (bInIsOrientedForward)
+	{
+		SetActorRotation(FRotator(0.f, 0.f, 0.f));
+	}
+	else
+	{
+		SetActorRotation(FRotator(0.f, 180.f, 0.f));
+	}
+}
+
 FIntPoint APWGameBoard::GetBoardSize() const
 {
 	return BoardSize;
@@ -87,8 +99,8 @@ FVector APWGameBoard::GetLocationOf(const FIntPoint& Position) const
 	ClampedPosition.Y = FMath::Clamp(Position.Y, 0, BoardSize.Y - 1);
 
 	FVector ResultLocation = GetActorLocation()
-		+ FVector((float(ClampedPosition.X) - float(BoardSize.X) / 2.f + 0.5f) * TileSize.X,
-				  (float(ClampedPosition.Y) - float(BoardSize.Y) / 2.f + 0.5f) * TileSize.Y,
+		+ FVector((float(ClampedPosition.Y) - float(BoardSize.Y) / 2.f + 0.5f) * TileSize.Y,
+				  (float(ClampedPosition.X) - float(BoardSize.X) / 2.f + 0.5f) * TileSize.X,
 				  0.f);
 	 
 	return ResultLocation;
@@ -111,17 +123,16 @@ void APWGameBoard::SpawnTiles()
 	{
 		for (int XIndex = 0; XIndex < BoardSize.X; XIndex++)
 		{
-			FVector SpawnLocation = GetActorLocation()
-				+ FVector((float(XIndex) - float(BoardSize.X) / 2.f + 0.5f) * TileSize.X,
-						  (float(YIndex) - float(BoardSize.Y) / 2.f + 0.5f) * TileSize.Y,
-						  VerticalOffset);
+			FVector SpawnLocation = FVector((float(YIndex) - float(BoardSize.Y) / 2.f + 0.5f) * TileSize.Y,
+											(float(XIndex) - float(BoardSize.X) / 2.f + 0.5f) * TileSize.X,
+											VerticalOffset);
 
-			FRotator SpawnRotation = GetActorRotation() + FRotator(0.f, FMath::RandRange(0, 3), 0.f) * 90.f;
+			FRotator SpawnRotation = FRotator(0.f, FMath::RandRange(0, 3), 0.f) * 90.f;
 
 			FActorSpawnParameters SpawnParameters;
 			SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			APWGameBoardTile* SpawnedTile = Cast<APWGameBoardTile>(GetWorld()->SpawnActor(TileClass, &SpawnLocation, &SpawnRotation, SpawnParameters));
-			SpawnedTile->AttachToActor(this, FAttachmentTransformRules::KeepWorldTransform);
+			SpawnedTile->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
 			SpawnedTile->SetPosition(FIntPoint(XIndex, YIndex));
 			SpawnedTile->SetIsAvailable(false);
 			SpawnedTile->OnTileBeginCursorOver.AddDynamic(this, &APWGameBoard::OneTileBeginCursorOver);

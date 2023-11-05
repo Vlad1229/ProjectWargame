@@ -21,6 +21,8 @@ public:
 
 	void SetBoardSize(const FIntPoint& InBoardSize);
 
+	void SetOrientation(bool bInIsOrientedForward);
+
 	FIntPoint GetBoardSize() const;
 
 	bool PositionIsValid(const FIntPoint& Position) const;
@@ -75,6 +77,8 @@ protected:
 	UPROPERTY()
 	APWGameBoardTile* HoveredTile;
 
-	UPROPERTY()
 	TArray<FIntPoint> TakenPositions;
+
+private:
+	bool bIsOrientedForward;
 };

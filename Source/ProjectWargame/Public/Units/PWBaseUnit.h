@@ -7,10 +7,11 @@
 #include "PWBaseUnit.generated.h"
 
 class USkeletalMeshComponent;
+class APWGameBoard;
 
-DECLARE_DELEGATE_OneParam(FOnUnitBeginCursorOver, int32);
-DECLARE_DELEGATE_OneParam(FOnUnitEndCursorOver, int32);
-DECLARE_DELEGATE(FOnMoveEnd);
+DECLARE_DELEGATE_OneParam(FOnUnitBeginCursorOver, APWBaseUnit*);
+DECLARE_DELEGATE_OneParam(FOnUnitEndCursorOver, APWBaseUnit*);
+DECLARE_DELEGATE(FOnEndUnitMove);
 
 UCLASS(Abstract)
 class PROJECTWARGAME_API APWBaseUnit : public AActor
@@ -20,23 +21,35 @@ class PROJECTWARGAME_API APWBaseUnit : public AActor
 public:
 	APWBaseUnit();
 
-	virtual void Tick(float DeltaSeconds) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	void SetIndex(int32 InIndex);
+	virtual void Tick(float DeltaSeconds) override;
 
 	virtual TArray<FIntPoint> GetAvailableForMovementPositions(const FIntPoint& BoardSize, const TArray<FIntPoint>& TakenPositions) const;
 
 	virtual TArray<FIntPoint> GetAvailableForActionPositions(const FIntPoint& BoardSize, const TArray<FIntPoint>& TakenPositions) const;
 
-	void MoveTo(const FVector& Location);
+	void SetDefaultPosition(const FIntPoint& InPosition);
+
+	UFUNCTION()
+	void OnRep_DefaultPosition();
+
+	void SetDefaultAngle(float InAngle);
+
+	UFUNCTION()
+	void OnRep_DefaultAngle();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_StartMove(FIntPoint FinalPosition);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_EndMove();
 
 	virtual bool PerformActionAtTarget(APWBaseUnit* Target);
 
 	virtual bool PerformActionAtLocation(const FVector& Location);
 
 	void RotateTo(float Angle);
-
-	void SetPosition(const FIntPoint& InPosition);
 
 	FIntPoint GetPosition() const;
 
@@ -45,19 +58,27 @@ protected:
 
 private:
 	UFUNCTION()
-	void OnBeginCursorOver(AActor* TouchedActor);
+	void BeginCursorOver(AActor* TouchedActor);
 
 	UFUNCTION()
-	void OnEndCursorOver(AActor* TouchedActor);
+	void EndCursorOver(AActor* TouchedActor);
 
 public:
 	FOnUnitBeginCursorOver OnUnitBeginCursorOver;
 	FOnUnitEndCursorOver OnUnitEndCursorOver;
-	FOnMoveEnd OnMoveEnd;
+	FOnEndUnitMove OnEndMove;
 
 protected:
 	UPROPERTY(VisibleAnywhere)
 	USkeletalMeshComponent* SkeletalMeshComponent;
+
+	APWGameBoard* GameBoard;
+
+	UPROPERTY(EditDefaultsOnly)
+	float MovementSpeed;
+
+	UPROPERTY(EditDefaultsOnly)
+	float RotationSpeed;
 
 	UPROPERTY(EditDefaultsOnly)
 	int32 Health;
@@ -65,20 +86,20 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	int32 Damage;
 
-	FIntPoint Position;
+	UPROPERTY(ReplicatedUsing = OnRep_DefaultPosition)
+	FIntPoint DefaultPosition = FIntPoint(-1, -1);
+
+	FIntPoint Position = FIntPoint(-1, -1);
+
+	UPROPERTY(ReplicatedUsing = OnRep_DefaultAngle)
+	float DefaultAngle = -1.f;
 
 private:
-	int32 Index;
-
 	FVector DesiredLocation;
 
 	float DesiredAngle;
 
-	UPROPERTY(EditDefaultsOnly)
-	float MovementSpeed;
-
-	UPROPERTY(EditDefaultsOnly)
-	float RotationSpeed;
+	float AngleDiff;
 
 	bool bIsRotating;
 

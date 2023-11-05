@@ -8,6 +8,7 @@
 
 class APWBaseUnit;
 class APWGameBoard;
+class APWWargameController;
 
 /**
  * 
@@ -25,6 +26,10 @@ public:
 private:
 	void GenerateBoard();
 
+	void StartGame();
+
+	void SwitchPlayer();
+
 protected:
 	UPROPERTY(EditDefaultsOnly)
 	FIntPoint BoardSize;
@@ -32,6 +37,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<APWBaseUnit> UnitClass;
 
-	UPROPERTY()
 	APWGameBoard* GameBoard;
+
+	TArray<APWWargameController*> Players;
+
+private:
+	int32 CurrentPlayerIndex;
 };
